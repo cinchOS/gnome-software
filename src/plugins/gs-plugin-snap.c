@@ -245,6 +245,104 @@ gs_plugin_destroy (GsPlugin *plugin)
 	g_hash_table_unref (priv->store_snaps);
 }
 
+static gboolean
+is_banner_image (const gchar *filename)
+{
+	/* Check if this screenshot was uploaded as "banner.png" or "banner.jpg".
+	 * The server optionally adds a 7 character suffix onto it if it would collide with
+	 * an existing name, e.g. "banner_MgEy4MI.png"
+	 * See https://forum.snapcraft.io/t/improve-method-for-setting-featured-snap-banner-image-in-store/
+	 */
+	return g_regex_match_simple ("^banner(?:_[a-zA-Z0-9]{7})?\\.(?:png|jpg)$", filename, 0, 0);
+}
+
+static gboolean
+is_banner_icon_image (const gchar *filename)
+{
+	/* Check if this screenshot was uploaded as "banner-icon.png" or "banner-icon.jpg".
+	 * The server optionally adds a 7 character suffix onto it if it would collide with
+	 * an existing name, e.g. "banner-icon_Ugn6pmj.png"
+	 * See https://forum.snapcraft.io/t/improve-method-for-setting-featured-snap-banner-image-in-store/
+	 */
+	return g_regex_match_simple ("^banner-icon(?:_[a-zA-Z0-9]{7})?\\.(?:png|jpg)$", filename, 0, 0);
+}
+
+gboolean
+gs_plugin_add_featured (GsPlugin *plugin,
+		        GsAppList *list,
+		        GCancellable *cancellable,
+		        GError **error)
+{
+	g_autoptr(JsonArray) snaps = NULL;
+	JsonObject *snap;
+	g_autoptr(GsApp) app = NULL;
+	const gchar *banner_url = NULL, *icon_url = NULL;
+	g_autoptr(GString) background_css = NULL;
+	g_autofree gchar *css = NULL;
+
+	snaps = find_snaps (plugin, "featured", FALSE, NULL, cancellable, error);
+
+	if (snaps == NULL)
+		return FALSE;
+
+	if (json_array_get_length (snaps) == 0)
+		return TRUE;
+
+	/* use first snap as the featured app */
+	snap = json_array_get_object_element (snaps, 0);
+	app = snap_to_app (plugin, snap);
+
+	/* if has a sceenshot called 'banner.png' or 'banner-icon.png' then use them for the banner */
+	if (json_object_has_member (snap, "screenshots")) {
+		JsonArray *screenshots;
+		guint i;
+
+		screenshots = json_object_get_array_member (snap, "screenshots");
+		for (i = 0; i < json_array_get_length (screenshots); i++) {
+			JsonObject *screenshot = json_array_get_object_element (screenshots, i);
+			const gchar *url;
+			g_autofree gchar *filename = NULL;
+
+			url = json_object_get_string_member (screenshot, "url");
+			filename = g_path_get_basename (url);
+			if (is_banner_image (filename))
+				banner_url = url;
+			else if (is_banner_icon_image (filename))
+				icon_url = url;
+		}
+	}
+
+	background_css = g_string_new ("");
+	if (icon_url != NULL)
+		g_string_append_printf (background_css,
+					"url('%s') left center / auto 100%% no-repeat, ",
+					icon_url);
+	else
+		g_string_append_printf (background_css,
+					"url('%s') left center / auto 100%% no-repeat, ",
+					json_object_get_string_member (snap, "icon"));
+	if (banner_url != NULL)
+		g_string_append_printf (background_css,
+					"url('%s') center / cover no-repeat;",
+					banner_url);
+	else
+		g_string_append_printf (background_css, "#FFFFFF;");
+	css = g_strdup_printf ("border-color: #000000;\n"
+			       "text-shadow: 0 1px 1px rgba(255,255,255,0.5);\n"
+			       "color: #000000;\n"
+			       "outline-offset: 0;\n"
+			       "outline-color: alpha(#ffffff, 0.75);\n"
+			       "outline-style: dashed;\n"
+			       "outline-offset: 2px;\n"
+			       "background: %s;",
+			       background_css->str);
+	gs_app_set_metadata (app, "GnomeSoftware::FeatureTile-css", css);
+
+	gs_app_list_add (list, app);
+
+	return TRUE;
+}
+
 gboolean
 gs_plugin_add_popular (GsPlugin *plugin,
 		       GsAppList *list,
@@ -258,7 +356,8 @@ gs_plugin_add_popular (GsPlugin *plugin,
 	if (snaps == NULL)
 		return FALSE;
 
-	for (i = 0; i < json_array_get_length (snaps); i++) {
+	/* skip first snap - it is used as the featured app */
+	for (i = 1; i < json_array_get_length (snaps); i++) {
 		JsonObject *snap = json_array_get_object_element (snaps, i);
 		gs_app_list_add (list, snap_to_app (plugin, snap));
 	}
@@ -508,8 +607,16 @@ gs_plugin_refine_app (GsPlugin *plugin,
 			screenshots = json_object_get_array_member (store_snap, "screenshots");
 			for (i = 0; i < json_array_get_length (screenshots); i++) {
 				JsonObject *screenshot = json_array_get_object_element (screenshots, i);
+				const gchar *url;
+				g_autofree gchar *filename = NULL;
 				g_autoptr(AsScreenshot) ss = NULL;
 				g_autoptr(AsImage) image = NULL;
+
+				/* skip sceenshots used for banner when app is featured */
+				url = json_object_get_string_member (screenshot, "url");
+				filename = g_path_get_basename (url);
+				if (is_banner_image (filename) || is_banner_icon_image (filename))
+					continue;
 
 				ss = as_screenshot_new ();
 				as_screenshot_set_kind (ss, AS_SCREENSHOT_KIND_NORMAL);
