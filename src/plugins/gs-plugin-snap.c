@@ -56,8 +56,13 @@ gs_plugin_initialize (GsPlugin *plugin)
 
 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "desktop-categories");
 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "ubuntu-reviews");
+	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "appstream");
 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_BETTER_THAN, "packagekit");
 	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_BEFORE, "icons");
+
+	/* Override hardcoded popular apps */
+	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "hardcoded-popular");
+	gs_plugin_add_rule (plugin, GS_PLUGIN_RULE_RUN_AFTER, "hardcoded-featured");
 }
 
 gboolean
@@ -267,6 +272,11 @@ is_banner_icon_image (const gchar *filename)
 	return g_regex_match_simple ("^banner-icon(?:_[a-zA-Z0-9]{7})?\\.(?:png|jpg)$", filename, 0, 0);
 }
 
+remove_cb (GsApp *app, gpointer user_data)
+{
+	return FALSE;
+}
+
 gboolean
 gs_plugin_add_featured (GsPlugin *plugin,
 		        GsAppList *list,
@@ -338,6 +348,8 @@ gs_plugin_add_featured (GsPlugin *plugin,
 			       background_css->str);
 	gs_app_set_metadata (app, "GnomeSoftware::FeatureTile-css", css);
 
+	/* replace any other featured apps with our one */
+	gs_app_list_filter (list, remove_cb, NULL);
 	gs_app_list_add (list, app);
 
 	return TRUE;
@@ -355,6 +367,9 @@ gs_plugin_add_popular (GsPlugin *plugin,
 	snaps = find_snaps (plugin, "featured", FALSE, NULL, cancellable, error);
 	if (snaps == NULL)
 		return FALSE;
+
+	/* replace any other popular apps with our one */
+	gs_app_list_filter (list, remove_cb, NULL);
 
 	/* skip first snap - it is used as the featured app */
 	for (i = 1; i < json_array_get_length (snaps); i++) {
