@@ -38,6 +38,16 @@ gs_plugin_get_name (void)
 	return "snap";
 }
 
+const gchar **
+gs_plugin_order_after (GsPlugin *plugin)
+{
+	static const gchar *deps[] = {
+		"appstream",		/* Override hardcoded popular apps */
+		"hardcoded-featured",	/* Override hardcoded popular apps */
+		NULL };
+	return deps;
+}
+
 void
 gs_plugin_initialize (GsPlugin *plugin)
 {
@@ -197,6 +207,12 @@ is_banner_icon_image (const gchar *filename)
 	return g_regex_match_simple ("^banner-icon(?:_[a-zA-Z0-9]{7})?\\.(?:png|jpg)$", filename, 0, 0);
 }
 
+static gboolean
+remove_cb (GsApp *app, gpointer user_data)
+{
+	return FALSE;
+}
+
 gboolean
 gs_plugin_add_featured (GsPlugin *plugin,
 		        GList **list,
@@ -262,6 +278,8 @@ gs_plugin_add_featured (GsPlugin *plugin,
 	gs_app_set_metadata (app, "Featured::stroke-color", "#000000");
 	gs_app_set_metadata (app, "Featured::text-shadow", "0 1px 1px rgba(255,255,255,0.5)");
 
+	/* replace any other featured apps with our one */
+	gs_plugin_list_filter (list, remove_cb, NULL);
 	gs_plugin_add_app (list, app);
 
 	return TRUE;
@@ -279,6 +297,9 @@ gs_plugin_add_popular (GsPlugin *plugin,
 	snaps = find_snaps (plugin, "featured", FALSE, NULL, cancellable, error);
 	if (snaps == NULL)
 		return FALSE;
+
+	/* replace any other popular apps with our one */
+	gs_plugin_list_filter (list, remove_cb, NULL);
 
 	/* skip first snap - it is used as the featured app */
 	for (i = 1; i < json_array_get_length (snaps); i++) {
