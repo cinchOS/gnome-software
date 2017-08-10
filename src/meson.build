@@ -43,6 +43,7 @@ gnome_software_sources = [
   'gs-moderate-page.c',
   'gs-overview-page.c',
   'gs-page.c',
+  'gs-permission-dialog.c',
   'gs-popular-tile.c',
   'gs-progress-button.c',
   'gs-removal-dialog.c',

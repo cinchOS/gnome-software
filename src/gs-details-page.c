@@ -38,6 +38,7 @@
 #include "gs-review-histogram.h"
 #include "gs-review-dialog.h"
 #include "gs-review-row.h"
+#include "gs-permission-dialog.h"
 
 /* the number of reviews to show before clicking the 'More Reviews' button */
 #define SHOW_NR_REVIEWS_INITIAL		4
@@ -84,6 +85,7 @@ struct _GsDetailsPage
 	GtkWidget		*button_install;
 	GtkWidget		*button_remove;
 	GtkWidget		*button_cancel;
+	GtkWidget		*button_permissions;
 	GtkWidget		*button_more_reviews;
 	GtkWidget		*infobar_details_app_norepo;
 	GtkWidget		*infobar_details_app_repo;
@@ -394,6 +396,18 @@ gs_details_page_switch_to (GsPage *page, gboolean scroll_up)
 				   as_app_state_to_string (state));
 			g_assert_not_reached ();
 		}
+	}
+
+	/* permissions button */
+	switch (gs_app_get_state (self->app)) {
+	case AS_APP_STATE_INSTALLED:
+	case AS_APP_STATE_UPDATABLE:
+	case AS_APP_STATE_UPDATABLE_LIVE:
+		gtk_widget_set_visible (self->button_permissions, TRUE);
+		break;
+	default:
+		gtk_widget_set_visible (self->button_permissions, FALSE);
+		break;
 	}
 
 	adj = gtk_scrolled_window_get_vadjustment (GTK_SCROLLED_WINDOW (self->scrolledwindow_details));
@@ -1775,6 +1789,19 @@ gs_details_page_app_cancel_button_cb (GtkWidget *widget, GsDetailsPage *self)
 }
 
 static void
+gs_details_page_app_permissions_button_cb (GtkWidget *widget, GsDetailsPage *self)
+{
+	GtkWidget *dialog;
+
+	dialog = gs_permission_dialog_new (self->app);
+	gs_shell_modal_dialog_present (self->shell, GTK_DIALOG (dialog));
+
+	/* just destroy */
+	g_signal_connect_swapped (dialog, "response",
+				  G_CALLBACK (gtk_widget_destroy), dialog);
+}
+
+static void
 gs_details_page_app_install_button_cb (GtkWidget *widget, GsDetailsPage *self)
 {
 	GList *l;
@@ -2202,6 +2229,9 @@ gs_details_page_setup (GsPage *page,
 	g_signal_connect (self->button_cancel, "clicked",
 			  G_CALLBACK (gs_details_page_app_cancel_button_cb),
 			  self);
+	g_signal_connect (self->button_permissions, "clicked",
+			  G_CALLBACK (gs_details_page_app_permissions_button_cb),
+			  self);
 	g_signal_connect (self->button_more_reviews, "clicked",
 			  G_CALLBACK (gs_details_page_more_reviews_button_cb),
 			  self);
@@ -2296,6 +2326,7 @@ gs_details_page_class_init (GsDetailsPageClass *klass)
 	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, button_install);
 	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, button_remove);
 	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, button_cancel);
+	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, button_permissions);
 	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, button_more_reviews);
 	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, infobar_details_app_norepo);
 	gtk_widget_class_bind_template_child (widget_class, GsDetailsPage, infobar_details_app_repo);
