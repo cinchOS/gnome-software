@@ -63,7 +63,7 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 }
 
 static void
-set_row (GsPermissionDialog *dialog, int row, const gchar *text)
+set_row (GsPermissionDialog *dialog, int row, const gchar *text, gboolean enabled)
 {
 	GtkWidget *label;
 	GtkWidget *sw;
@@ -75,6 +75,7 @@ set_row (GsPermissionDialog *dialog, int row, const gchar *text)
 	gtk_grid_attach (GTK_GRID (dialog->permission_grid), label, 0, row, 1, 1);
 
 	sw = gtk_switch_new ();
+	gtk_switch_set_active (GTK_SWITCH (sw), enabled);
 	gtk_widget_show (sw);
 	gtk_grid_attach (GTK_GRID (dialog->permission_grid), sw, 1, row, 1, 1);
 }
@@ -94,7 +95,9 @@ gs_permission_dialog_new (GsApp *app)
 	permissions = gs_app_get_permissions (app);
 	for (i = 0; i < permissions->len; i++) {
 		GsPermission *permission = g_ptr_array_index (permissions, i);
-		set_row (dialog, i, gs_permission_get_label (permission));
+		set_row (dialog, i,
+			 gs_permission_get_label (permission),
+			 gs_permission_get_enabled (permission));
 	}
 
 	return GTK_WIDGET (dialog);
