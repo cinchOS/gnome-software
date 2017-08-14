@@ -243,6 +243,7 @@ gs_details_page_switch_to (GsPage *page, gboolean scroll_up)
 	g_autofree gchar *text = NULL;
 	GtkStyleContext *sc;
 	GtkAdjustment *adj;
+	GPtrArray *permissions;
 
 	if (gs_shell_get_mode (self->shell) != GS_SHELL_MODE_DETAILS) {
 		g_warning ("Called switch_to(details) when in mode %s",
@@ -403,7 +404,8 @@ gs_details_page_switch_to (GsPage *page, gboolean scroll_up)
 	case AS_APP_STATE_INSTALLED:
 	case AS_APP_STATE_UPDATABLE:
 	case AS_APP_STATE_UPDATABLE_LIVE:
-		gtk_widget_set_visible (self->button_permissions, TRUE);
+		permissions = gs_app_get_permissions (self->app);
+		gtk_widget_set_visible (self->button_permissions, permissions->len > 0);
 		break;
 	default:
 		gtk_widget_set_visible (self->button_permissions, FALSE);
