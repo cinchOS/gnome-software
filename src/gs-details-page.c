@@ -1753,11 +1753,21 @@ gs_details_page_app_cancel_button_cb (GtkWidget *widget, GsDetailsPage *self)
 }
 
 static void
+gs_details_page_permission_changed_cb (GsPermissionDialog *dialog, GsPermission *permission, gboolean value, GsDetailsPage *self)
+{
+	g_autoptr(GCancellable) cancellable = g_cancellable_new ();
+	g_set_object (&self->cancellable, cancellable);
+	gs_page_set_app_permission (GS_PAGE (self), self->app, permission, value, self->cancellable);
+}
+
+static void
 gs_details_page_app_permissions_button_cb (GtkWidget *widget, GsDetailsPage *self)
 {
 	GtkWidget *dialog;
 
 	dialog = gs_permission_dialog_new (self->app);
+	g_signal_connect (dialog, "permission-changed",
+			  G_CALLBACK (gs_details_page_permission_changed_cb), self);
 	gs_shell_modal_dialog_present (self->shell, GTK_DIALOG (dialog));
 
 	/* just destroy */

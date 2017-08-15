@@ -758,6 +758,21 @@ gs_plugin_app_remove (GsPlugin *plugin,
 }
 
 gboolean
+gs_plugin_app_set_permission (GsPlugin *plugin,
+			      GsApp *app,
+			      GsPermission *permission,
+			      gboolean value,
+			      GCancellable *cancellable,
+			      GError **error)
+{
+	/* We can set permissions on apps we know of */
+	if (g_strcmp0 (gs_app_get_management_plugin (app), "snap") != 0)
+		return TRUE;
+
+	return TRUE;
+}
+
+gboolean
 gs_plugin_auth_login (GsPlugin *plugin, GsAuth *auth,
 		      GCancellable *cancellable, GError **error)
 {

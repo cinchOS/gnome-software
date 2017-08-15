@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include "gs-permission-dialog.h"
+#include "gs-permission-switch.h"
 
 struct _GsPermissionDialog
 {
@@ -33,6 +34,13 @@ struct _GsPermissionDialog
 };
 
 G_DEFINE_TYPE (GsPermissionDialog, gs_permission_dialog, GTK_TYPE_DIALOG)
+
+enum {
+	SIGNAL_PERMISSION_CHANGED,
+	SIGNAL_LAST
+};
+
+static guint signals [SIGNAL_LAST] = { 0 };
 
 static void
 close_button_clicked (GtkWidget *widget, GsPermissionDialog *dialog)
@@ -67,6 +75,13 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 
 	object_class->dispose = gs_permission_dialog_dispose;
 
+	signals [SIGNAL_PERMISSION_CHANGED] =
+		g_signal_new ("permission-changed",
+			      G_TYPE_FROM_CLASS (object_class), G_SIGNAL_RUN_LAST,
+			      0,
+			      NULL, NULL, g_cclosure_marshal_generic,
+			      G_TYPE_NONE, 2, GS_TYPE_PERMISSION, G_TYPE_BOOLEAN);
+
 	gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/Software/gs-permission-dialog.ui");
 
 	gtk_widget_class_bind_template_child (widget_class, GsPermissionDialog, permission_grid);
@@ -74,21 +89,29 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 }
 
 static void
-set_row (GsPermissionDialog *dialog, int row, const gchar *text, gboolean enabled)
+switch_changed_cb (GsPermissionSwitch *sw, gboolean value, GsPermissionDialog *dialog)
+{
+	g_signal_emit (dialog, signals[SIGNAL_PERMISSION_CHANGED], 0,
+		       gs_permission_switch_get_permission (sw),
+		       value);
+}
+
+static void
+set_row (GsPermissionDialog *dialog, int row, GsPermission *permission)
 {
 	GtkWidget *label;
-	GtkWidget *sw;
+	GsPermissionSwitch *sw;
 
-	label = gtk_label_new (text);
+	label = gtk_label_new (gs_permission_get_label (permission));
 	gtk_label_set_xalign (GTK_LABEL (label), 1.0);
 	gtk_widget_set_hexpand (label, TRUE);
 	gtk_widget_show (label);
 	gtk_grid_attach (GTK_GRID (dialog->permission_grid), label, 0, row, 1, 1);
 
-	sw = gtk_switch_new ();
-	gtk_switch_set_active (GTK_SWITCH (sw), enabled);
-	gtk_widget_show (sw);
-	gtk_grid_attach (GTK_GRID (dialog->permission_grid), sw, 1, row, 1, 1);
+	sw = gs_permission_switch_new (permission);
+	gtk_widget_show (GTK_WIDGET (sw));
+	g_signal_connect (sw, "changed", G_CALLBACK (switch_changed_cb), dialog);
+	gtk_grid_attach (GTK_GRID (dialog->permission_grid), GTK_WIDGET (sw), 1, row, 1, 1);
 }
 
 GtkWidget *
@@ -106,9 +129,7 @@ gs_permission_dialog_new (GsApp *app)
 	permissions = gs_app_get_permissions (app);
 	for (i = 0; i < permissions->len; i++) {
 		GsPermission *permission = g_ptr_array_index (permissions, i);
-		set_row (dialog, i,
-			 gs_permission_get_label (permission),
-			 gs_permission_get_enabled (permission));
+		set_row (dialog, i, permission);
 	}
 
 	return GTK_WIDGET (dialog);

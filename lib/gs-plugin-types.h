@@ -270,6 +270,7 @@ typedef enum {
  * @GS_PLUGIN_ACTION_INITIALIZE:		Initialize the plugin
  * @GS_PLUGIN_ACTION_DESTROY:			Destroy the plugin
  * @GS_PLUGIN_ACTION_PURCHASE:			Purchase an app
+ * @GS_PLUGIN_ACTION_SET_PERMISSION:		Set app permission
  *
  * The plugin action.
  **/
@@ -317,6 +318,7 @@ typedef enum {
 	GS_PLUGIN_ACTION_INITIALIZE,
 	GS_PLUGIN_ACTION_DESTROY,
 	GS_PLUGIN_ACTION_PURCHASE,
+	GS_PLUGIN_ACTION_SET_PERMISSION,
 	/*< private >*/
 	GS_PLUGIN_ACTION_LAST
 } GsPluginAction;
