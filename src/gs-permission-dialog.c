@@ -23,6 +23,7 @@
 
 #include "gs-permission-dialog.h"
 #include "gs-permission-switch.h"
+#include "gs-permission-combo-box.h"
 
 struct _GsPermissionDialog
 {
@@ -88,8 +89,10 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 	gtk_widget_class_bind_template_child (widget_class, GsPermissionDialog, close_button);
 }
 
+// FIXME: Make a GsPermissionControl interfaces that can be shared between GsPermissionSwitch and GsPermissionComboBox
+
 static void
-switch_changed_cb (GsPermissionSwitch *sw, GsPermissionValue *value, GsPermissionDialog *dialog)
+permission_switch_changed_cb (GsPermissionSwitch *sw, GsPermissionValue *value, GsPermissionDialog *dialog)
 {
 	g_signal_emit (dialog, signals[SIGNAL_PERMISSION_CHANGED], 0,
 		       gs_permission_switch_get_permission (sw),
@@ -97,10 +100,18 @@ switch_changed_cb (GsPermissionSwitch *sw, GsPermissionValue *value, GsPermissio
 }
 
 static void
+permission_combo_box_changed_cb (GsPermissionComboBox *combo, GsPermissionValue *value, GsPermissionDialog *dialog)
+{
+	g_signal_emit (dialog, signals[SIGNAL_PERMISSION_CHANGED], 0,
+		       gs_permission_combo_box_get_permission (combo),
+		       value);
+}
+
+static void
 set_row (GsPermissionDialog *dialog, int row, GsPermission *permission)
 {
 	GtkWidget *label;
-	GsPermissionSwitch *sw;
+	GtkWidget *control;
 
 	label = gtk_label_new (gs_permission_get_label (permission));
 	gtk_label_set_xalign (GTK_LABEL (label), 1.0);
@@ -108,10 +119,16 @@ set_row (GsPermissionDialog *dialog, int row, GsPermission *permission)
 	gtk_widget_show (label);
 	gtk_grid_attach (GTK_GRID (dialog->permission_grid), label, 0, row, 1, 1);
 
-	sw = gs_permission_switch_new (permission);
-	gtk_widget_show (GTK_WIDGET (sw));
-	g_signal_connect (sw, "changed", G_CALLBACK (switch_changed_cb), dialog);
-	gtk_grid_attach (GTK_GRID (dialog->permission_grid), GTK_WIDGET (sw), 1, row, 1, 1);
+	if (gs_permission_get_values (permission)->len == 1) {
+		control = GTK_WIDGET (gs_permission_switch_new (permission));
+		g_signal_connect (control, "changed", G_CALLBACK (permission_switch_changed_cb), dialog);
+	}
+	else {
+		control = GTK_WIDGET (gs_permission_combo_box_new (permission));
+		g_signal_connect (control, "changed", G_CALLBACK (permission_combo_box_changed_cb), dialog);
+	}
+	gtk_widget_show (control);
+	gtk_grid_attach (GTK_GRID (dialog->permission_grid), control, 1, row, 1, 1);
 }
 
 GtkWidget *

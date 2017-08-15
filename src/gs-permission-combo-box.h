@@ -19,8 +19,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef GS_PERMISSION_SWITCH_H
-#define GS_PERMISSION_SWITCH_H
+#ifndef GS_PERMISSION_COMBO_BOX_H
+#define GS_PERMISSION_COMBO_BOX_H
 
 #include <gtk/gtk.h>
 
@@ -28,14 +28,14 @@
 
 G_BEGIN_DECLS
 
-#define GS_TYPE_PERMISSION_SWITCH (gs_permission_switch_get_type ())
+#define GS_TYPE_PERMISSION_COMBO_BOX (gs_permission_combo_box_get_type ())
 
-G_DECLARE_FINAL_TYPE (GsPermissionSwitch, gs_permission_switch, GS, PERMISSION_SWITCH, GtkSwitch)
+G_DECLARE_FINAL_TYPE (GsPermissionComboBox, gs_permission_combo_box, GS, PERMISSION_COMBO_BOX, GtkComboBox)
 
-GsPermissionSwitch	*gs_permission_switch_new		(GsPermission *permission);
+GsPermissionComboBox	*gs_permission_combo_box_new		(GsPermission *permission);
 
-GsPermission		*gs_permission_switch_get_permission	(GsPermissionSwitch *sw);
+GsPermission		*gs_permission_combo_box_get_permission	(GsPermissionComboBox *combo);
 
 G_END_DECLS
 
-#endif /* GS_PERMISSION_SWITCH_H */
+#endif /* GS_PERMISSION_COMBO_BOX_H */
