@@ -128,12 +128,12 @@ typedef gboolean	 (*GsPluginPurchaseFunc)	(GsPlugin	*plugin,
 							 GsPrice	*price,
 							 GCancellable	*cancellable,
 							 GError		**error);
-typedef gboolean	 (*GsPluginSetPermissionFunc)	(GsPlugin	*plugin,
-							 GsApp		*app,
-							 GsPermission	*permission,
-							 gboolean	 value,
-							 GCancellable	*cancellable,
-							 GError		**error);
+typedef gboolean	 (*GsPluginSetPermissionFunc)	(GsPlugin		*plugin,
+							 GsApp			*app,
+							 GsPermission		*permission,
+							 GsPermissionValue	*value,
+							 GCancellable		*cancellable,
+							 GError			**error);
 typedef gboolean	 (*GsPluginReviewFunc)		(GsPlugin	*plugin,
 							 GsApp		*app,
 							 AsReview	*review,

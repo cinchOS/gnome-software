@@ -741,12 +741,12 @@ gboolean	 gs_plugin_app_upgrade_trigger		(GsPlugin	*plugin,
  *
  * Returns: %TRUE for success or if not relevant
  **/
-gboolean	 gs_plugin_app_set_permission		(GsPlugin	*plugin,
-							 GsApp		*app,
-							 GsPermission	*permission,
-							 gboolean	 value,
-							 GCancellable	*cancellable,
-							 GError		**error);
+gboolean	 gs_plugin_app_set_permission		(GsPlugin		*plugin,
+							 GsApp			*app,
+							 GsPermission		*permission,
+							 GsPermissionValue	*value,
+							 GCancellable		*cancellable,
+							 GError			**error);
 
 /**
  * gs_plugin_review_submit:

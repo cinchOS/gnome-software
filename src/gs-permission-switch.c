@@ -49,8 +49,11 @@ gs_permission_switch_get_permission (GsPermissionSwitch *sw)
 static void
 active_changed_cb (GsPermissionSwitch *sw)
 {
+	GsPermissionValue *value;
+
+	value = g_ptr_array_index (gs_permission_get_values (sw->permission), 0);
 	g_signal_emit (sw, signals[SIGNAL_CHANGED], 0,
-		       gtk_switch_get_active (GTK_SWITCH (sw)));
+		       gtk_switch_get_active (GTK_SWITCH (sw)) ? value : NULL);
 }
 
 static void
@@ -75,7 +78,7 @@ gs_permission_switch_class_init (GsPermissionSwitchClass *klass)
 			      G_TYPE_FROM_CLASS (object_class), G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL, g_cclosure_marshal_generic,
-			      G_TYPE_NONE, 1, G_TYPE_BOOLEAN);
+			      G_TYPE_NONE, 1, GS_TYPE_PERMISSION_VALUE);
 }
 
 static void
@@ -90,7 +93,7 @@ gs_permission_switch_new (GsPermission *permission)
 
 	sw = g_object_new (GS_TYPE_PERMISSION_SWITCH, NULL);
 	sw->permission = g_object_ref (permission);
-	gtk_switch_set_active (GTK_SWITCH (sw), gs_permission_get_enabled (permission));
+	gtk_switch_set_active (GTK_SWITCH (sw), gs_permission_get_value (permission) != NULL);
 	g_signal_connect (sw, "notify::active", G_CALLBACK (active_changed_cb), NULL);
 
 	return sw;

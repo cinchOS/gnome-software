@@ -23,7 +23,8 @@
 #define __GS_PERMISSION_H
 
 #include <glib-object.h>
-#include <gdk/gdk.h>
+
+#include "gs-permission-value.h"
 
 G_BEGIN_DECLS
 
@@ -31,19 +32,23 @@ G_BEGIN_DECLS
 
 G_DECLARE_FINAL_TYPE (GsPermission, gs_permission, GS, PERMISSION, GObject)
 
-GsPermission	*gs_permission_new			(const gchar	*label,
-							 gboolean	 enabled);
+GsPermission		*gs_permission_new			(const gchar		*label);
 
-const gchar	*gs_permission_get_metadata_item	(GsPermission	*permission,
-							 const gchar	*key);
-void		 gs_permission_add_metadata		(GsPermission	*permission,
-							 const gchar	*key,
-							 const gchar	*value);
+const gchar		*gs_permission_get_metadata_item	(GsPermission		*permission,
+								 const gchar		*key);
+void			 gs_permission_add_metadata		(GsPermission		*permission,
+								 const gchar		*key,
+								 const gchar		*value);
 
-const gchar	*gs_permission_get_label		(GsPermission	*permission);
-gboolean	 gs_permission_get_enabled		(GsPermission	*permission);
-void		 gs_permission_set_enabled		(GsPermission	*permission,
-							 gboolean	 enabled);
+const gchar		*gs_permission_get_label		(GsPermission	*permission);
+
+void			 gs_permission_add_value		(GsPermission		*permission,
+								 GsPermissionValue	*value);
+GPtrArray		*gs_permission_get_values		(GsPermission		*permission);
+
+GsPermissionValue	*gs_permission_get_value		(GsPermission		*permission);
+void			 gs_permission_set_value		(GsPermission		*permission,
+								 GsPermissionValue	*value);
 
 G_END_DECLS
 

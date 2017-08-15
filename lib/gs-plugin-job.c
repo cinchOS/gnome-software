@@ -48,7 +48,7 @@ struct _GsPluginJob
 	AsReview		*review;
 	GsPrice			*price;
 	GsPermission		*permission;
-	gboolean		 permission_value;
+	GsPermissionValue	*permission_value;
 	gint64			 time_created;
 };
 
@@ -133,7 +133,10 @@ gs_plugin_job_to_string (GsPluginJob *self)
 		g_string_append_printf (str, " with file=%s", path);
 	}
 	if (self->permission != NULL) {
-		g_string_append_printf (str, " with permission=%s:%s", gs_permission_get_label (self->permission), self->permission_value ? "true" : "false");
+		g_string_append_printf (str, " with permission=%s", gs_permission_get_label (self->permission));
+	}
+	if (self->permission_value != NULL) {
+		g_string_append_printf (str, " with permission-value=%s", gs_permission_value_get_label (self->permission_value));
 	}
 	if (self->plugin != NULL) {
 		g_string_append_printf (str, " on plugin=%s",
@@ -452,16 +455,16 @@ gs_plugin_job_get_permission (GsPluginJob *self)
 }
 
 void
-gs_plugin_job_set_permission_value (GsPluginJob *self, gboolean value)
+gs_plugin_job_set_permission_value (GsPluginJob *self, GsPermissionValue *value)
 {
 	g_return_if_fail (GS_IS_PLUGIN_JOB (self));
-	self->permission_value = value;
+	g_set_object (&self->permission_value, value);
 }
 
-gboolean
+GsPermissionValue *
 gs_plugin_job_get_permission_value (GsPluginJob *self)
 {
-	g_return_val_if_fail (GS_IS_PLUGIN_JOB (self), FALSE);
+	g_return_val_if_fail (GS_IS_PLUGIN_JOB (self), NULL);
 	return self->permission_value;
 }
 
@@ -520,7 +523,7 @@ gs_plugin_job_get_property (GObject *obj, guint prop_id, GValue *value, GParamSp
 		g_value_set_object (value, self->permission);
 		break;
 	case PROP_PERMISSION_VALUE:
-		g_value_set_boolean (value, self->permission_value);
+		g_value_set_object (value, self->permission_value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
@@ -583,7 +586,7 @@ gs_plugin_job_set_property (GObject *obj, guint prop_id, const GValue *value, GP
 		gs_plugin_job_set_permission (self, g_value_get_object (value));
 		break;
 	case PROP_PERMISSION_VALUE:
-		gs_plugin_job_set_permission_value (self, g_value_get_boolean (value));
+		gs_plugin_job_set_permission_value (self, g_value_get_object (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (obj, prop_id, pspec);
@@ -699,9 +702,9 @@ gs_plugin_job_class_init (GsPluginJobClass *klass)
 				     G_PARAM_READWRITE);
 	g_object_class_install_property (object_class, PROP_PERMISSION, pspec);
 
-	pspec = g_param_spec_boolean ("permission-value", NULL, NULL,
-				      FALSE,
-				      G_PARAM_READWRITE);
+	pspec = g_param_spec_object ("permission-value", NULL, NULL,
+				     GS_TYPE_PERMISSION_VALUE,
+				     G_PARAM_READWRITE);
 	g_object_class_install_property (object_class, PROP_PERMISSION_VALUE, pspec);
 }
 

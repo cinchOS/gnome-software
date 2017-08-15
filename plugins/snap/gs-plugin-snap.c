@@ -601,8 +601,9 @@ gs_plugin_refine_app (GsPlugin *plugin,
 		for (i = 0; i < plugs->len; i++) {
 			SnapdPlug *plug = plugs->pdata[i];
 			const gchar *name;
-			gboolean is_connected;
+			SnapdConnection *connection = NULL;
 			g_autoptr(GsPermission) permission = NULL;
+			guint j;
 
 			/* skip if not relating to this snap */
 			if (g_strcmp0 (snapd_plug_get_snap (plug), gs_app_get_name (app)) != 0)
@@ -610,8 +611,27 @@ gs_plugin_refine_app (GsPlugin *plugin,
 
 			/* map interfaces to known permissions */
 			name = snapd_plug_get_name (plug);
-			is_connected = snapd_plug_get_connections (plug)->len > 0;
-			permission = gs_permission_new (name, is_connected);
+			if (snapd_plug_get_connections (plug)->len > 0)
+				connection = g_ptr_array_index (snapd_plug_get_connections (plug), 0);
+			permission = gs_permission_new (name);
+			for (j = 0; j < slots->len; j++) {
+				SnapdSlot *slot = slots->pdata[j];
+				g_autoptr(GsPermissionValue) value = NULL;
+				g_autofree gchar *label = NULL;
+
+				/* skip slots we can't connect to */
+				if (g_strcmp0 (snapd_plug_get_interface (plug), snapd_slot_get_interface (slot)) != 0)
+					continue;
+
+				label = g_strdup_printf ("%s:%s", snapd_slot_get_snap (slot), snapd_slot_get_name (slot));
+				value = gs_permission_value_new (label);
+				gs_permission_add_value (permission, value);
+
+				if (connection != NULL &&
+				    g_strcmp0 (snapd_slot_get_snap (slot), snapd_connection_get_snap (connection)) == 0 &&
+				    g_strcmp0 (snapd_slot_get_name (slot), snapd_connection_get_name (connection)) == 0)
+					gs_permission_set_value (permission, value);
+			}
 			gs_app_add_permission (app, permission);
 		}
 	}
@@ -761,7 +781,7 @@ gboolean
 gs_plugin_app_set_permission (GsPlugin *plugin,
 			      GsApp *app,
 			      GsPermission *permission,
-			      gboolean value,
+			      GsPermissionValue *value,
 			      GCancellable *cancellable,
 			      GError **error)
 {
@@ -769,6 +789,8 @@ gs_plugin_app_set_permission (GsPlugin *plugin,
 	if (g_strcmp0 (gs_app_get_management_plugin (app), "snap") != 0)
 		return TRUE;
 
+	// FIXME
+	g_printerr ("PERMISSION %s=%s\n", gs_permission_get_label (permission), gs_permission_value_get_label (value));
 	return TRUE;
 }
 

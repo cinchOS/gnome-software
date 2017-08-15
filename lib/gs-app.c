@@ -444,13 +444,15 @@ gs_app_to_string_append (GsApp *app, GString *str)
 	}
 	for (i = 0; i < priv->permissions->len; i++) {
 		GsPermission *permission;
+		GsPermissionValue *value;
 		g_autofree gchar *key = NULL;
 
 		permission = g_ptr_array_index (priv->permissions, i);
+		value = gs_permission_get_value (permission);
 		key = g_strdup_printf ("permission-%02u", i);
 		gs_app_kv_printf (str, key, "[%s] %s",
 				  gs_permission_get_label (permission),
-				  gs_permission_get_enabled (permission) ? "true" : "false");
+				  value ? gs_permission_value_get_label (value) : "(unset)");
 	}
 	if (priv->match_value != 0)
 		gs_app_kv_printf (str, "match-value", "%05x", priv->match_value);

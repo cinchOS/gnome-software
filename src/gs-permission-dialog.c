@@ -80,7 +80,7 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 			      G_TYPE_FROM_CLASS (object_class), G_SIGNAL_RUN_LAST,
 			      0,
 			      NULL, NULL, g_cclosure_marshal_generic,
-			      G_TYPE_NONE, 2, GS_TYPE_PERMISSION, G_TYPE_BOOLEAN);
+			      G_TYPE_NONE, 2, GS_TYPE_PERMISSION, GS_TYPE_PERMISSION_VALUE);
 
 	gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/Software/gs-permission-dialog.ui");
 
@@ -89,7 +89,7 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 }
 
 static void
-switch_changed_cb (GsPermissionSwitch *sw, gboolean value, GsPermissionDialog *dialog)
+switch_changed_cb (GsPermissionSwitch *sw, GsPermissionValue *value, GsPermissionDialog *dialog)
 {
 	g_signal_emit (dialog, signals[SIGNAL_PERMISSION_CHANGED], 0,
 		       gs_permission_switch_get_permission (sw),

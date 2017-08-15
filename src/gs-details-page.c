@@ -1753,7 +1753,7 @@ gs_details_page_app_cancel_button_cb (GtkWidget *widget, GsDetailsPage *self)
 }
 
 static void
-gs_details_page_permission_changed_cb (GsPermissionDialog *dialog, GsPermission *permission, gboolean value, GsDetailsPage *self)
+gs_details_page_permission_changed_cb (GsPermissionDialog *dialog, GsPermission *permission, GsPermissionValue *value, GsDetailsPage *self)
 {
 	g_autoptr(GCancellable) cancellable = g_cancellable_new ();
 	g_set_object (&self->cancellable, cancellable);

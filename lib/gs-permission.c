@@ -30,7 +30,8 @@ struct _GsPermission
 	GObject			 parent_instance;
 
 	gchar			*label;
-	gboolean		 enabled;
+	GPtrArray		*values;
+	GsPermissionValue	*value;
 	GHashTable		*metadata;	/* utf8: utf8 */
 };
 
@@ -38,7 +39,7 @@ G_DEFINE_TYPE (GsPermission, gs_permission, G_TYPE_OBJECT)
 
 /**
  * gs_permission_get_metadata_item:
- * @auth: a #GsPermission
+ * @permission: a #GsPermission
  * @key: a string
  *
  * Gets some metadata from a permission object.
@@ -48,16 +49,16 @@ G_DEFINE_TYPE (GsPermission, gs_permission, G_TYPE_OBJECT)
  * Returns: A string value, or %NULL for not found
  */
 const gchar *
-gs_permission_get_metadata_item (GsPermission *auth, const gchar *key)
+gs_permission_get_metadata_item (GsPermission *permission, const gchar *key)
 {
-	g_return_val_if_fail (GS_IS_PERMISSION (auth), NULL);
+	g_return_val_if_fail (GS_IS_PERMISSION (permission), NULL);
 	g_return_val_if_fail (key != NULL, NULL);
-	return g_hash_table_lookup (auth->metadata, key);
+	return g_hash_table_lookup (permission->metadata, key);
 }
 
 /**
  * gs_permission_add_metadata:
- * @auth: a #GsPermission
+ * @permission: a #GsPermission
  * @key: a string
  * @value: a string
  *
@@ -66,10 +67,10 @@ gs_permission_get_metadata_item (GsPermission *auth, const gchar *key)
  * typical use would be to store an ID for this permission.
  */
 void
-gs_permission_add_metadata (GsPermission *auth, const gchar *key, const gchar *value)
+gs_permission_add_metadata (GsPermission *permission, const gchar *key, const gchar *value)
 {
-	g_return_if_fail (GS_IS_PERMISSION (auth));
-	g_hash_table_insert (auth->metadata, g_strdup (key), g_strdup (value));
+	g_return_if_fail (GS_IS_PERMISSION (permission));
+	g_hash_table_insert (permission->metadata, g_strdup (key), g_strdup (value));
 }
 
 /**
@@ -88,32 +89,72 @@ gs_permission_get_label (GsPermission *permission)
 }
 
 /**
- * gs_permission_get_enabled:
+ * gs_permission_add_value:
  * @permission: a #GsPermission
+ * @value: a #GsPermissionValue
  *
- * Get if this permission is enabled.
- *
- * Returns: %TRUE if enabled
+ * Add a possible values for this permission.
  */
-gboolean
-gs_permission_get_enabled (GsPermission *permission)
+void
+gs_permission_add_value (GsPermission *permission, GsPermissionValue *value)
 {
-	g_return_val_if_fail (GS_IS_PERMISSION (permission), 0);
-	return permission->enabled;
+	g_return_if_fail (GS_IS_PERMISSION (permission));
+	g_ptr_array_add (permission->values, g_object_ref (value));
 }
 
 /**
- * gs_permission_set_enabled:
+ * gs_permission_get_values:
  * @permission: a #GsPermission
- * @enabled: %TRUE if this permission is enabled.
  *
- * Set if this permission is enabled.
+ * Get the possible values for this permission.
+ *
+ * Returns: (element-type GsPermissionValue) (transfer none): a list
+ */
+GPtrArray *
+gs_permission_get_values (GsPermission *permission)
+{
+	g_return_val_if_fail (GS_IS_PERMISSION (permission), NULL);
+	return permission->values;
+}
+
+/**
+ * gs_permission_get_value:
+ * @permission: a #GsPermission
+ *
+ * Get the value for this permission.
+ *
+ * Returns: a %GsPermissionValue or %NULL.
+ */
+GsPermissionValue *
+gs_permission_get_value (GsPermission *permission)
+{
+	g_return_val_if_fail (GS_IS_PERMISSION (permission), NULL);
+	return permission->value;
+}
+
+/**
+ * gs_permission_set_value:
+ * @permission: a #GsPermission
+ * @value: a #GsPermissionValue to set for this permission
+ *
+ * Set the value of this permission.
  */
 void
-gs_permission_set_enabled (GsPermission *permission, gboolean enabled)
+gs_permission_set_value (GsPermission *permission, GsPermissionValue *value)
 {
 	g_return_if_fail (GS_IS_PERMISSION (permission));
-	permission->enabled = enabled;
+	g_set_object (&permission->value, value);
+}
+
+static void
+gs_permission_dispose (GObject *object)
+{
+	GsPermission *permission = GS_PERMISSION (object);
+
+	g_clear_pointer (&permission->values, g_ptr_array_unref);
+	g_clear_object (&permission->value);
+
+	G_OBJECT_CLASS (gs_permission_parent_class)->dispose (object);
 }
 
 static void
@@ -131,6 +172,7 @@ static void
 gs_permission_class_init (GsPermissionClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
+	object_class->dispose = gs_permission_dispose;
 	object_class->finalize = gs_permission_finalize;
 }
 
@@ -139,15 +181,15 @@ gs_permission_init (GsPermission *permission)
 {
 	permission->metadata = g_hash_table_new_full (g_str_hash, g_str_equal,
 						      g_free, g_free);
+	permission->values = g_ptr_array_new_with_free_func (g_object_unref);
 }
 
 GsPermission *
-gs_permission_new (const gchar *label, gboolean enabled)
+gs_permission_new (const gchar *label)
 {
 	GsPermission *permission;
 	permission = g_object_new (GS_TYPE_PERMISSION, NULL);
 	permission->label = g_strdup (label);
-	permission->enabled = enabled;
 	return GS_PERMISSION (permission);
 }
 

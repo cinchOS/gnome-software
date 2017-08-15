@@ -747,7 +747,7 @@ gs_page_app_permission_set_cb (GObject *source,
 }
 
 void
-gs_page_set_app_permission (GsPage *page, GsApp *app, GsPermission *permission, gboolean value, GCancellable *cancellable)
+gs_page_set_app_permission (GsPage *page, GsApp *app, GsPermission *permission, GsPermissionValue *value, GCancellable *cancellable)
 {
 	GsPagePrivate *priv = gs_page_get_instance_private (page);
 	g_autoptr(GsPluginJob) plugin_job = NULL;
