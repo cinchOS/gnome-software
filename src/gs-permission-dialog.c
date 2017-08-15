@@ -29,14 +29,24 @@ struct _GsPermissionDialog
 
 	GsApp		*app;
 	GtkWidget	*permission_grid;
+	GtkWidget	*close_button;
 };
 
 G_DEFINE_TYPE (GsPermissionDialog, gs_permission_dialog, GTK_TYPE_DIALOG)
 
 static void
+close_button_clicked (GtkWidget *widget, GsPermissionDialog *dialog)
+{
+	gtk_widget_destroy (GTK_WIDGET (dialog));
+}
+
+static void
 gs_permission_dialog_init (GsPermissionDialog *dialog)
 {
 	gtk_widget_init_template (GTK_WIDGET (dialog));
+
+	g_signal_connect (dialog->close_button, "clicked",
+			  G_CALLBACK (close_button_clicked), dialog);
 }
 
 static void
@@ -60,6 +70,7 @@ gs_permission_dialog_class_init (GsPermissionDialogClass *klass)
 	gtk_widget_class_set_template_from_resource (widget_class, "/org/gnome/Software/gs-permission-dialog.ui");
 
 	gtk_widget_class_bind_template_child (widget_class, GsPermissionDialog, permission_grid);
+	gtk_widget_class_bind_template_child (widget_class, GsPermissionDialog, close_button);
 }
 
 static void
