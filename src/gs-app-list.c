@@ -386,6 +386,7 @@ gs_app_list_randomize (GsAppList *list)
 /**
  * gs_app_list_filter_duplicates:
  * @list: A #GsAppList
+ * @flags: a #GsAppListFilterFlags, e.g. GS_APP_LIST_FILTER_KEY_ID
  *
  * Filter any duplicate applications from the list.
  *
@@ -399,18 +400,16 @@ gs_app_list_filter_duplicates (GsAppList *list, GsAppListFilterFlags flags)
 	GsApp *found;
 	const gchar *id;
 	g_autoptr(GHashTable) hash = NULL;
-	g_autoptr(GList) values = NULL;
-	g_autoptr(GPtrArray) apps_no_id = NULL;
-	GList *l;
+	g_autoptr(GHashTable) kept_apps = NULL;
+	g_autoptr(GsAppList) old = NULL;
 	g_autoptr(GMutexLocker) locker = g_mutex_locker_new (&list->mutex);
 
 	g_return_if_fail (GS_IS_APP_LIST (list));
 
 	/* a hash table to hold apps with unique app ids */
-	hash = g_hash_table_new_full (g_str_hash, g_str_equal,
-				      g_free, (GDestroyNotify) g_object_unref);
-	/* an array to hold apps that have NULL app ids */
-	apps_no_id = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
+	hash = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, NULL);
+	/* a hash table containing apps we want to keep */
+	kept_apps = g_hash_table_new (g_direct_hash, g_direct_equal);
 
 	for (i = 0; i < list->array->len; i++) {
 		app = gs_app_list_index (list, i);
@@ -420,7 +419,7 @@ gs_app_list_filter_duplicates (GsAppList *list, GsAppListFilterFlags flags)
 		if (id == NULL) {
 			g_autofree gchar *str = gs_app_to_string (app);
 			g_debug ("adding without deduplication as no app id: %s", str);
-			g_ptr_array_add (apps_no_id, g_object_ref (app));
+			g_hash_table_add (kept_apps, app);
 			continue;
 		}
 		found = g_hash_table_lookup (hash, id);
@@ -428,7 +427,8 @@ gs_app_list_filter_duplicates (GsAppList *list, GsAppListFilterFlags flags)
 			g_debug ("found new %s", id);
 			g_hash_table_insert (hash,
 					     g_strdup (id),
-					     g_object_ref (app));
+					     app);
+			g_hash_table_add (kept_apps, app);
 			continue;
 		}
 
@@ -442,7 +442,9 @@ gs_app_list_filter_duplicates (GsAppList *list, GsAppListFilterFlags flags)
 					 gs_app_get_priority (found));
 				g_hash_table_insert (hash,
 						     g_strdup (id),
-						     g_object_ref (app));
+						     app);
+				g_hash_table_remove (kept_apps, found);
+				g_hash_table_add (kept_apps, app);
 				continue;
 			}
 			g_debug ("ignoring worse duplicate %s (priority %u > %u)",
@@ -455,18 +457,15 @@ gs_app_list_filter_duplicates (GsAppList *list, GsAppListFilterFlags flags)
 		continue;
 	}
 
-	/* add back the best results to the existing list */
+	/* deep copy to a temp list and clear the current one */
+	old = gs_app_list_copy (list);
 	gs_app_list_remove_all_safe (list);
-	values = g_hash_table_get_values (hash);
-	for (l = values; l != NULL; l = l->next) {
-		app = GS_APP (l->data);
-		gs_app_list_add_safe (list, app);
-	}
 
-	/* add back apps with NULL app ids to the existing list */
-	for (i = 0; i < apps_no_id->len; i++) {
-		app = g_ptr_array_index (apps_no_id, i);
-		gs_app_list_add_safe (list, app);
+	/* add back the apps we want to keep */
+	for (i = 0; i < old->array->len; i++) {
+		app = gs_app_list_index (old, i);
+		if (g_hash_table_contains (kept_apps, app))
+			gs_app_list_add_safe (list, app);
 	}
 }
 
